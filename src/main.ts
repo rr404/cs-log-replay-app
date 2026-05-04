@@ -4,6 +4,7 @@
 
 import { engine } from './engine/orchestrator'
 import type { RuntimeAlert, BucketReport } from './engine/types'
+import { TEST_ENV } from './data/testEnv'
 
 // ---------------------------------------------------------------------------
 // State
@@ -24,6 +25,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 const logInput      = $<HTMLTextAreaElement>('log-input')
 const runBtn        = $<HTMLButtonElement>('run-btn')
+const loadTestDataBtn = $<HTMLButtonElement>('load-test-data')
 const parserList    = $<HTMLUListElement>('parser-list')
 const scenarioList  = $<HTMLUListElement>('scenario-list')
 const statusBadge   = $<HTMLSpanElement>('status-badge')
@@ -94,6 +96,22 @@ function renderFileList(files: LoadedFile[], listEl: HTMLUListElement, kind: 'pa
     listEl.appendChild(li)
   }
   setupDragReorder(listEl, files, kind)
+}
+
+function loadTestData() {
+  state.parserFiles = TEST_ENV.parserFiles.map(f => ({ ...f }))
+  state.scenarioFiles = TEST_ENV.scenarioFiles.map(f => ({ ...f }))
+  logInput.value = TEST_ENV.logsText
+  $<HTMLSelectElement>('log-type-select').value = TEST_ENV.defaultLogType
+
+  renderFileList(state.parserFiles, parserList, 'parser')
+  renderFileList(state.scenarioFiles, scenarioList, 'scenario')
+  syncEngine()
+
+  const lines = logInput.value.split('\n').filter(l => l.trim()).length
+  lineCountEl.textContent = `${lines} line${lines !== 1 ? 's' : ''}`
+  updateRunBtn()
+  setStatus('idle')
 }
 
 // ---------------------------------------------------------------------------
@@ -382,6 +400,10 @@ $('reset-buckets').addEventListener('click', () => {
   bucketsContainer.innerHTML = '<div class="empty-state">Bucket state cleared</div>'
 })
 
+loadTestDataBtn.addEventListener('click', () => {
+  loadTestData()
+})
+
 // Tabs
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -399,6 +421,9 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 setupFileInput('parser-files',   'parser-drop',   state.parserFiles,   parserList,   'parser')
 setupFileInput('scenario-files', 'scenario-drop', state.scenarioFiles, scenarioList, 'scenario')
+
+// Load repository fixtures on startup so the app is immediately runnable.
+loadTestData()
 
 // ---------------------------------------------------------------------------
 // Helpers
