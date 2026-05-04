@@ -4,19 +4,17 @@
 
 import { engine } from './engine/orchestrator'
 import type { RuntimeAlert, BucketReport } from './engine/types'
-import { TEST_ENV, S00_PARSER, S01_PARSER, S02_PARSER } from './data/testEnv'
+import { ENVS_COLLECTION, type EnvFile } from './data/lpEnv'
 
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 
-interface LoadedFile { name: string; text: string }
-
 const state = {
-  parserS00Files: [] as LoadedFile[],
-  parserS01Files: [] as LoadedFile[],
-  parserS02Files: [] as LoadedFile[],
-  scenarioFiles:  [] as LoadedFile[],
+  parserS00Files: [] as EnvFile[],
+  parserS01Files: [] as EnvFile[],
+  parserS02Files: [] as EnvFile[],
+  scenarioFiles:  [] as EnvFile[],
 }
 
 // ---------------------------------------------------------------------------
@@ -45,7 +43,7 @@ const bucketsContainer = $<HTMLDivElement>('buckets-container')
 function setupFileInput(
   inputId: string,
   dropZoneId: string,
-  files: LoadedFile[],
+  files: EnvFile[],
   listEl: HTMLUListElement,
   kind: 'parser' | 'scenario',
   stage?: 's00' | 's01' | 's02',
@@ -87,7 +85,7 @@ function setupFileInput(
   })
 }
 
-function renderFileList(files: LoadedFile[], listEl: HTMLUListElement, kind: 'parser' | 'scenario', stage?: 's00' | 's01' | 's02') {
+function renderFileList(files: EnvFile[], listEl: HTMLUListElement, kind: 'parser' | 'scenario', stage?: 's00' | 's01' | 's02') {
   listEl.innerHTML = ''
   for (let i = 0; i < files.length; i++) {
     const f = files[i]
@@ -105,12 +103,13 @@ function renderFileList(files: LoadedFile[], listEl: HTMLUListElement, kind: 'pa
 }
 
 function loadTestData() {
-  state.parserS00Files = [{ ...S00_PARSER }]
-  state.parserS01Files = [{ ...S01_PARSER }]
-  state.parserS02Files = [{ ...S02_PARSER }]
-  state.scenarioFiles  = TEST_ENV.scenarioFiles.map(f => ({ ...f }))
-  logInput.value = TEST_ENV.logsText
-  $<HTMLSelectElement>('log-type-select').value = TEST_ENV.defaultLogType
+  const env = ENVS_COLLECTION[0]
+  state.parserS00Files = env.parserS00Files.map(f => ({ ...f }))
+  state.parserS01Files = env.parserS01Files.map(f => ({ ...f }))
+  state.parserS02Files = env.parserS02Files.map(f => ({ ...f }))
+  state.scenarioFiles  = env.scenarioFiles.map(f => ({ ...f }))
+  logInput.value = env.logsText
+  $<HTMLSelectElement>('log-type-select').value = env.defaultLogType
 
   renderFileList(state.parserS00Files, parserS00List, 'parser', 's00')
   renderFileList(state.parserS01Files, parserS01List, 'parser', 's01')
@@ -128,7 +127,7 @@ function loadTestData() {
 // Drag-to-reorder
 // ---------------------------------------------------------------------------
 
-function setupDragReorder(listEl: HTMLUListElement, files: LoadedFile[], kind: 'parser' | 'scenario') {
+function setupDragReorder(listEl: HTMLUListElement, files: EnvFile[], kind: 'parser' | 'scenario') {
   let dragSrcIndex = -1
 
   listEl.addEventListener('dragstart', (e) => {

