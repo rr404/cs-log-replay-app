@@ -47,14 +47,43 @@
         <!-- Parser files -->
         <section class="panel">
           <h3>2. Parser YAML Files</h3>
-          <div class="drop-zone" id="parser-drop">
-            <input type="file" id="parser-files" multiple accept=".yaml,.yml" />
-            <label for="parser-files">
-              <span class="drop-icon">📄</span>
-              <span>Drop or click to load parser YAMLs</span>
-            </label>
+
+          <div class="parser-stage">
+            <span class="stage-label">S00</span>
+            <div class="drop-zone" id="parser-s00-drop">
+              <input type="file" id="parser-s00-files" multiple accept=".yaml,.yml" />
+              <label for="parser-s00-files">
+                <span class="drop-icon">📄</span>
+                <span>Drop or click</span>
+              </label>
+            </div>
+            <ul id="parser-s00-list" class="file-list"></ul>
           </div>
-          <ul id="parser-list" class="file-list"></ul>
+
+          <div class="parser-stage">
+            <span class="stage-label">S01</span>
+            <div class="drop-zone" id="parser-s01-drop">
+              <input type="file" id="parser-s01-files" multiple accept=".yaml,.yml" />
+              <label for="parser-s01-files">
+                <span class="drop-icon">📄</span>
+                <span>Drop or click</span>
+              </label>
+            </div>
+            <ul id="parser-s01-list" class="file-list"></ul>
+          </div>
+
+          <div class="parser-stage">
+            <span class="stage-label">S02</span>
+            <div class="drop-zone" id="parser-s02-drop">
+              <input type="file" id="parser-s02-files" multiple accept=".yaml,.yml" />
+              <label for="parser-s02-files">
+                <span class="drop-icon">📄</span>
+                <span>Drop or click</span>
+              </label>
+            </div>
+            <ul id="parser-s02-list" class="file-list"></ul>
+          </div>
+
           <button class="btn-secondary btn-sm" id="clear-parsers">Clear parsers</button>
         </section>
 

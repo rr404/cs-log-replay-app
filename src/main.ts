@@ -4,7 +4,7 @@
 
 import { engine } from './engine/orchestrator'
 import type { RuntimeAlert, BucketReport } from './engine/types'
-import { TEST_ENV } from './data/testEnv'
+import { TEST_ENV, S00_PARSER, S01_PARSER, S02_PARSER } from './data/testEnv'
 
 // ---------------------------------------------------------------------------
 // State
@@ -13,8 +13,10 @@ import { TEST_ENV } from './data/testEnv'
 interface LoadedFile { name: string; text: string }
 
 const state = {
-  parserFiles:   [] as LoadedFile[],
-  scenarioFiles: [] as LoadedFile[],
+  parserS00Files: [] as LoadedFile[],
+  parserS01Files: [] as LoadedFile[],
+  parserS02Files: [] as LoadedFile[],
+  scenarioFiles:  [] as LoadedFile[],
 }
 
 // ---------------------------------------------------------------------------
@@ -26,7 +28,9 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const logInput      = $<HTMLTextAreaElement>('log-input')
 const runBtn        = $<HTMLButtonElement>('run-btn')
 const loadTestDataBtn = $<HTMLButtonElement>('load-test-data')
-const parserList    = $<HTMLUListElement>('parser-list')
+const parserS00List = $<HTMLUListElement>('parser-s00-list')
+const parserS01List = $<HTMLUListElement>('parser-s01-list')
+const parserS02List = $<HTMLUListElement>('parser-s02-list')
 const scenarioList  = $<HTMLUListElement>('scenario-list')
 const statusBadge   = $<HTMLSpanElement>('status-badge')
 const lineCountEl   = $<HTMLSpanElement>('line-count')
@@ -44,6 +48,7 @@ function setupFileInput(
   files: LoadedFile[],
   listEl: HTMLUListElement,
   kind: 'parser' | 'scenario',
+  stage?: 's00' | 's01' | 's02',
 ) {
   const input    = $<HTMLInputElement>(inputId)
   const dropZone = $<HTMLDivElement>(dropZoneId)
@@ -60,7 +65,7 @@ function setupFileInput(
       }
       files.push({ name: file.name, text })
     }
-    renderFileList(files, listEl, kind)
+    renderFileList(files, listEl, kind, stage)
     syncEngine()
     updateRunBtn()
   }
@@ -82,7 +87,7 @@ function setupFileInput(
   })
 }
 
-function renderFileList(files: LoadedFile[], listEl: HTMLUListElement, kind: 'parser' | 'scenario') {
+function renderFileList(files: LoadedFile[], listEl: HTMLUListElement, kind: 'parser' | 'scenario', stage?: 's00' | 's01' | 's02') {
   listEl.innerHTML = ''
   for (let i = 0; i < files.length; i++) {
     const f = files[i]
@@ -90,21 +95,26 @@ function renderFileList(files: LoadedFile[], listEl: HTMLUListElement, kind: 'pa
     li.draggable = true
     li.dataset.index = String(i)
     li.dataset.kind = kind
+    const stageAttr = stage ? ` data-stage="${stage}"` : ''
     li.innerHTML = `<span class="drag-handle" title="Drag to reorder">⠿</span>
       <span class="file-name">${escHtml(f.name)}</span>
-      <button class="remove-file" data-name="${escHtml(f.name)}" data-kind="${kind}" title="Remove">✕</button>`
+      <button class="remove-file" data-name="${escHtml(f.name)}" data-kind="${kind}"${stageAttr} title="Remove">✕</button>`
     listEl.appendChild(li)
   }
   setupDragReorder(listEl, files, kind)
 }
 
 function loadTestData() {
-  state.parserFiles = TEST_ENV.parserFiles.map(f => ({ ...f }))
-  state.scenarioFiles = TEST_ENV.scenarioFiles.map(f => ({ ...f }))
+  state.parserS00Files = [{ ...S00_PARSER }]
+  state.parserS01Files = [{ ...S01_PARSER }]
+  state.parserS02Files = [{ ...S02_PARSER }]
+  state.scenarioFiles  = TEST_ENV.scenarioFiles.map(f => ({ ...f }))
   logInput.value = TEST_ENV.logsText
   $<HTMLSelectElement>('log-type-select').value = TEST_ENV.defaultLogType
 
-  renderFileList(state.parserFiles, parserList, 'parser')
+  renderFileList(state.parserS00Files, parserS00List, 'parser', 's00')
+  renderFileList(state.parserS01Files, parserS01List, 'parser', 's01')
+  renderFileList(state.parserS02Files, parserS02List, 'parser', 's02')
   renderFileList(state.scenarioFiles, scenarioList, 'scenario')
   syncEngine()
 
@@ -165,11 +175,20 @@ function setupDragReorder(listEl: HTMLUListElement, files: LoadedFile[], kind: '
 document.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest('.remove-file') as HTMLButtonElement | null
   if (!btn) return
-  const name = btn.dataset.name!
-  const kind = btn.dataset.kind as 'parser' | 'scenario'
+  const name  = btn.dataset.name!
+  const kind  = btn.dataset.kind as 'parser' | 'scenario'
+  const stage = btn.dataset.stage as 's00' | 's01' | 's02' | undefined
   if (kind === 'parser') {
-    state.parserFiles = state.parserFiles.filter(f => f.name !== name)
-    renderFileList(state.parserFiles, parserList, 'parser')
+    if (stage === 's00') {
+      state.parserS00Files = state.parserS00Files.filter(f => f.name !== name)
+      renderFileList(state.parserS00Files, parserS00List, 'parser')
+    } else if (stage === 's01') {
+      state.parserS01Files = state.parserS01Files.filter(f => f.name !== name)
+      renderFileList(state.parserS01Files, parserS01List, 'parser')
+    } else {
+      state.parserS02Files = state.parserS02Files.filter(f => f.name !== name)
+      renderFileList(state.parserS02Files, parserS02List, 'parser')
+    }
   } else {
     state.scenarioFiles = state.scenarioFiles.filter(f => f.name !== name)
     renderFileList(state.scenarioFiles, scenarioList, 'scenario')
@@ -188,12 +207,9 @@ function syncEngine() {
   engine.clearParsers()
   engine.clearScenarios()
 
-  // Load parsers: auto-detect stage from filename (s00-, s01-, s02-…)
-  for (const f of state.parserFiles) {
-    const stageMatch = f.name.match(/^(s\d{2}-\w+)/)
-    const defaultStage = stageMatch ? stageMatch[1] : 's01-parse'
-    engine.loadParsers([f.text], defaultStage)
-  }
+  for (const f of state.parserS00Files) engine.loadParsers([f.text], 's00-parse')
+  for (const f of state.parserS01Files) engine.loadParsers([f.text], 's01-parse')
+  for (const f of state.parserS02Files) engine.loadParsers([f.text], 's02-parse')
 
   engine.loadScenarios(state.scenarioFiles.map(f => f.text))
   void logType // used at replay time
@@ -382,8 +398,12 @@ function bucketCard(b: BucketReport): string {
 // ---------------------------------------------------------------------------
 
 $('clear-parsers').addEventListener('click', () => {
-  state.parserFiles = []
-  renderFileList(state.parserFiles, parserList, 'parser')
+  state.parserS00Files = []
+  state.parserS01Files = []
+  state.parserS02Files = []
+  renderFileList(state.parserS00Files, parserS00List, 'parser', 's00')
+  renderFileList(state.parserS01Files, parserS01List, 'parser', 's01')
+  renderFileList(state.parserS02Files, parserS02List, 'parser', 's02')
   engine.clearParsers()
   updateRunBtn()
 })
@@ -419,8 +439,10 @@ document.querySelectorAll('.tab').forEach(tab => {
 // Init file input wiring
 // ---------------------------------------------------------------------------
 
-setupFileInput('parser-files',   'parser-drop',   state.parserFiles,   parserList,   'parser')
-setupFileInput('scenario-files', 'scenario-drop', state.scenarioFiles, scenarioList, 'scenario')
+setupFileInput('parser-s00-files', 'parser-s00-drop', state.parserS00Files, parserS00List, 'parser', 's00')
+setupFileInput('parser-s01-files', 'parser-s01-drop', state.parserS01Files, parserS01List, 'parser', 's01')
+setupFileInput('parser-s02-files', 'parser-s02-drop', state.parserS02Files, parserS02List, 'parser', 's02')
+setupFileInput('scenario-files',   'scenario-drop',   state.scenarioFiles,  scenarioList,  'scenario')
 
 // Load repository fixtures on startup so the app is immediately runnable.
 loadTestData()

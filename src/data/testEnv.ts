@@ -3,11 +3,9 @@ export interface TestEnvFile {
   text: string
 }
 
-export const TEST_ENV = {
-  parserFiles: [
-    {
-      name: 's00-syslog-logs.yaml',
-      text: String.raw`filter: "evt.Line.Labels.type == 'syslog'"
+export const S00_PARSER: TestEnvFile = {
+  name: 's00-syslog-logs.yaml',
+  text: String.raw`filter: "evt.Line.Labels.type == 'syslog'"
 onsuccess: next_stage
 pattern_syntax:
   RAW_SYSLOG_PREFIX: '^<%{NUMBER:syslog_priority}>%{NUMBER:syslog_version} %{SYSLOGBASE2} %{DATA:program} (?:%{NUMBER:pid}|-)'
@@ -46,10 +44,11 @@ statics:
     expression: evt.Line.Src
   - meta: datasource_type
     expression: evt.Line.Module`,
-    },
-    {
-      name: 's01-apache2-logs.yaml',
-      text: String.raw`filter: "evt.Parsed.program startsWith 'apache2'"
+}
+
+export const S01_PARSER: TestEnvFile = {
+  name: 's01-apache2-logs.yaml',
+  text: String.raw`filter: "evt.Parsed.program startsWith 'apache2'"
 onsuccess: next_stage
 name: crowdsecurity/apache2-logs
 description: "Parse Apache2 access and error logs"
@@ -77,10 +76,11 @@ nodes:
         - meta: target_fqdn
           expression: "evt.Parsed.target_fqdn"
     onsuccess: next_stage`,
-    },
-    {
-      name: 's02-http-logs.yaml',
-      text: String.raw`filter: "evt.Meta.service == 'http' && evt.Meta.log_type in ['http_access-log', 'http_error-log']"
+}
+
+export const S02_PARSER: TestEnvFile = {
+  name: 's02-http-logs.yaml',
+  text: String.raw`filter: "evt.Meta.service == 'http' && evt.Meta.log_type in ['http_access-log', 'http_error-log']"
 description: "Parse more Specifically HTTP logs, such as HTTP Code, HTTP path, HTTP args and if its a static ressource"
 name: crowdsecurity/http-logs
 pattern_syntax:
@@ -108,8 +108,10 @@ nodes:
           expression: evt.Parsed.file_frag + evt.Parsed.file_ext
         - parsed: static_ressource
           expression: "Upper(evt.Parsed.file_ext) in ['.JPG', '.CSS', '.JS', '.JPEG', '.PNG', '.SVG', '.MAP', '.ICO', '.OTF', '.GIF', '.MP3', '.MP4', '.WOFF', '.WOFF2', '.TTF', '.OTF', '.EOT', '.WEBP', '.WAV', '.GZ', '.BROTLI', '.BVR', '.TS', '.BMP', '.AVIF', '.MJS'] ? 'true' : 'false'"`,
-    },
-  ] as TestEnvFile[],
+}
+
+export const TEST_ENV = {
+  parserFiles: [S00_PARSER, S01_PARSER, S02_PARSER] as TestEnvFile[],
   scenarioFiles: [
     {
       name: 'http-probing.yaml',

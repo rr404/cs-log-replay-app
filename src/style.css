@@ -602,6 +602,26 @@ select:focus { border-color: var(--cs-blue); }
 }
 
 /* ─────────────────────────────────────────────────────── */
+/* Parser stage sections                                    */
+/* ─────────────────────────────────────────────────────── */
+.parser-stage {
+  margin-bottom: 8px;
+}
+
+.stage-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--cs-blue);
+  background: rgba(0,163,255,0.12);
+  border: 1px solid rgba(0,163,255,0.25);
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-bottom: 4px;
+}
+
+/* ─────────────────────────────────────────────────────── */
 /* Scrollbars                                               */
 /* ─────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
